@@ -1,5 +1,5 @@
 //app/index.tsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect  } from "react";
 import { 
   Text, 
   View, 
@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -27,6 +28,7 @@ interface CarItem {
 
 export default function App() {
   const router = useRouter();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
@@ -96,6 +98,25 @@ export default function App() {
       </View>
     );
   };
+
+
+useEffect(() => {
+  const checkAuth = async () => {
+    const token = await AsyncStorage.getItem('authToken');
+    const userData = await AsyncStorage.getItem('user');
+    if (token && userData) {
+      const user = JSON.parse(userData);
+      if (user.role === 1) {
+        router.replace('/partnerDashboard');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  };
+  checkAuth();
+}, []);
+
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>

@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import api from "../src/config/axios"; // Import the axios instance
+import AsyncStorage from "@react-native-async-storage/async-storage"; // For persistent token storage
 
 export default function Login() {
   const router = useRouter();
@@ -20,29 +22,48 @@ export default function Login() {
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    setErrors([]);
-    setStatus(null);
+// In Login.tsx, update handleLogin
+const handleLogin = async () => {
+  setErrors([]);
+  setStatus(null);
 
-    if (!email || !password) {
-      setErrors(["Email and password are required."]);
-      return;
-    }
+  if (!email || !password) {
+    setErrors(["Email and password are required."]);
+    return;
+  }
 
-    // Mock validation for demo
+  try {
+    const response = await api.post("/auth/login", { email, password });
+
+    if (response.data.success) {
+      const { token, user } = response.data.data;
+
+      await AsyncStorage.setItem("authToken", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+
+      setStatus("Login successful! Redirecting...");
+
     setTimeout(() => {
-      if (email.includes("@") && password.length >= 6) {
-        setStatus("Login successful! Redirecting...");
-        // Mock role based on email for demo
-        const userRole = email.toLowerCase().includes("partner") ? "1" : "2";
-        setTimeout(() => {
-          router.push(userRole === "1" ? "/partnerDashboard" : "/dashboard");
-        }, 1000);
+  router.replace(user.role === 1 ? "/partnerDashboard" : "/dashboard");
+}, 1000);
+    }
+  } catch (error: any) {
+    let errorMessages: string[] = [];
+    if (error.response) {
+      if (error.response.status === 422) {
+        const validationErrors = error.response.data.errors;
+        errorMessages = Object.values(validationErrors).flat() as string[];
+      } else if (error.response.status === 401) {
+        errorMessages = [error.response.data.message || "Invalid email or password"];
       } else {
-        setErrors(["Invalid email or password (password must be 6+ characters)."]);
+        errorMessages = [error.response.data.message || "Login failed. Please try again."];
       }
-    }, 500);
-  };
+    } else {
+      errorMessages = ["Network error. Please check your connection and try again."];
+    }
+    setErrors(errorMessages);
+  }
+};
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -66,9 +87,9 @@ export default function Login() {
             CARS Rent
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={30} color="white" />
-        </TouchableOpacity>
+   <TouchableOpacity onPress={() => router.replace("/")}>
+  <Ionicons name="arrow-back" size={30} color="white" />
+</TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1, justifyContent: "center" }}>

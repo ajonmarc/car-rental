@@ -8,52 +8,174 @@ import {
   StatusBar,
   Image,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../src/config/axios';
+
+// TypeScript interfaces
+interface RegisterData {
+  name: string;
+  email: string;
+  country: string;
+  city: string;
+  job: string;
+  description: string;
+  role: number; // Changed to number
+  password: string;
+  password_confirmation: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data?: { user?: any; token?: string };
+  message?: string;
+  errors?: { [key: string]: string[] };
+}
 
 export default function Register() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const [job, setJob] = useState("");
-  const [description, setDescription] = useState("");
-  const [role, setRole] = useState("1");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [job, setJob] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [role, setRole] = useState<string>("1"); // Still string in UI for simplicity
+  const [password, setPassword] = useState<string>("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState<string>("");
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleRegister = () => {
+  // Client-side validation
+  const validateForm = (): boolean => {
     setErrors([]);
-    setStatus(null);
-
     const newErrors: string[] = [];
-    if (!name) newErrors.push("Name is required.");
-    if (!email || !email.includes("@")) newErrors.push("Valid email is required.");
-    if (!country) newErrors.push("Country is required.");
-    if (!city) newErrors.push("City is required.");
-    if (!job) newErrors.push("Job is required.");
-    if (!password || password.length < 6) newErrors.push("Password must be at least 6 characters.");
-    if (password !== passwordConfirmation) newErrors.push("Passwords do not match.");
-    if (!termsAccepted) newErrors.push("You must agree to the terms and privacy policy.");
+
+    if (!name.trim()) newErrors.push("Name is required.");
+    if (!email.trim() || !email.includes("@")) newErrors.push("Valid email is required.");
+    if (!country.trim()) newErrors.push("Country is required.");
+    if (!city.trim()) newErrors.push("City is required.");
+    if (!job.trim()) newErrors.push("Job is required.");
+    if (!password || password.length < 8) {
+      newErrors.push("Password must be at least 8 characters.");
+    }
+    if (password !== passwordConfirmation) {
+      newErrors.push("Passwords do not match.");
+    }
+    if (!termsAccepted) {
+      newErrors.push("You must agree to the terms and privacy policy.");
+    }
 
     if (newErrors.length > 0) {
       setErrors(newErrors);
-      return;
+      return false;
     }
 
-    // Mock validation for demo
-    setTimeout(() => {
-      setStatus("Registration successful! Redirecting...");
-      setTimeout(() => {
-        router.push(role === "1" ? "/partnerDashboard" : "/dashboard");
-      }, 1000);
-    }, 500);
+    return true;
   };
+
+  // API call to register user
+  const registerUser = async (userData: RegisterData): Promise<ApiResponse> => {
+    try {
+      const response = await api.post('/auth/register', userData); 
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || 'Registration successful!',
+      };
+    } catch (error: any) {
+      console.error('Registration error:', error.response?.data || error.message);
+      
+      if (error.response) {
+        if (error.response.status === 422 && error.response.data.errors) {
+          return {
+            success: false,
+            errors: error.response.data.errors,
+            message: 'Validation failed',
+          };
+        }
+        
+        return {
+          success: false,
+          message: error.response.data.message || 'Registration failed. Please try again.',
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  };
+
+// In Register.tsx, update handleRegister
+const handleRegister = async () => {
+  setErrors([]);
+  setStatus(null);
+
+  if (!validateForm()) {
+    return;
+  }
+
+  setIsLoading(true);
+
+  const userData: RegisterData = {
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    country: country.trim(),
+    city: city.trim(),
+    job: job.trim(),
+    description: description.trim(),
+    role: parseInt(role),
+    password,
+    password_confirmation: passwordConfirmation,
+  };
+
+  try {
+    const result = await registerUser(userData);
+
+    if (result.success) {
+      setStatus("Registration successful! Redirecting...");
+
+      if (result.data?.user) {
+        await AsyncStorage.setItem("user", JSON.stringify(result.data.user));
+      }
+
+      if (result.data?.token) {
+        await AsyncStorage.setItem("authToken", result.data.token);
+      } else {
+        console.warn("No token received from backend");
+      }
+
+    setTimeout(() => {
+  router.replace(role === "1" ? "/partnerDashboard" : "/dashboard");
+}, 1500);
+    } else {
+      if (result.errors) {
+        const fieldErrors: string[] = [];
+        Object.entries(result.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            fieldErrors.push(...messages.map(msg => `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}`));
+          }
+        });
+        setErrors(fieldErrors);
+      } else if (result.message) {
+        setErrors([result.message]);
+      }
+    }
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    setErrors(["An unexpected error occurred. Please try again."]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -77,9 +199,9 @@ export default function Register() {
             CARS Rent
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={30} color="white" />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace("/")}>
+        <Ionicons name="arrow-back" size={30} color="white" />
+      </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1 }}>
@@ -102,7 +224,7 @@ export default function Register() {
           <View style={{ marginBottom: 15, padding: 10, backgroundColor: "#fee2e2", borderRadius: 5 }}>
             {errors.map((error, index) => (
               <Text key={index} style={{ color: "#dc2626", fontSize: 14, textAlign: "center" }}>
-                {error}
+                • {error}
               </Text>
             ))}
           </View>
@@ -122,10 +244,10 @@ export default function Register() {
         >
           <View style={{ marginBottom: 15 }}>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-              Name
+              Name *
             </Text>
             <TextInput
-              placeholder="Enter your name"
+              placeholder="Enter your full name"
               value={name}
               onChangeText={setName}
               style={{
@@ -137,15 +259,16 @@ export default function Register() {
               }}
               autoCapitalize="words"
               autoFocus
+              editable={!isLoading}
             />
           </View>
 
           <View style={{ marginBottom: 15 }}>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-              Email
+              Email *
             </Text>
             <TextInput
-              placeholder="Enter your email"
+              placeholder="Enter your email address"
               value={email}
               onChangeText={setEmail}
               style={{
@@ -157,13 +280,14 @@ export default function Register() {
               }}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
           </View>
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 15 }}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-                Country
+                Country *
               </Text>
               <TextInput
                 placeholder="Enter your country"
@@ -177,11 +301,12 @@ export default function Register() {
                   fontSize: 16,
                 }}
                 autoCapitalize="words"
+                editable={!isLoading}
               />
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
               <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-                City
+                City *
               </Text>
               <TextInput
                 placeholder="Enter your city"
@@ -195,16 +320,17 @@ export default function Register() {
                   fontSize: 16,
                 }}
                 autoCapitalize="words"
+                editable={!isLoading}
               />
             </View>
           </View>
 
           <View style={{ marginBottom: 15 }}>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-              Job
+              Job *
             </Text>
             <TextInput
-              placeholder="Enter your job"
+              placeholder="Enter your occupation"
               value={job}
               onChangeText={setJob}
               style={{
@@ -215,6 +341,7 @@ export default function Register() {
                 fontSize: 16,
               }}
               autoCapitalize="words"
+              editable={!isLoading}
             />
           </View>
 
@@ -223,7 +350,7 @@ export default function Register() {
               Description
             </Text>
             <TextInput
-              placeholder="Enter a description"
+              placeholder="Tell us about yourself (optional)"
               value={description}
               onChangeText={setDescription}
               style={{
@@ -237,12 +364,13 @@ export default function Register() {
               }}
               multiline
               numberOfLines={5}
+              editable={!isLoading}
             />
           </View>
 
           <View style={{ marginBottom: 15 }}>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-              Register as
+              Register as *
             </Text>
             <View
               style={{
@@ -254,7 +382,8 @@ export default function Register() {
             >
               <TouchableOpacity
                 style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
-                onPress={() => setRole("1")}
+                onPress={() => !isLoading && setRole("1")}
+                disabled={isLoading}
               >
                 <View
                   style={{
@@ -279,11 +408,12 @@ export default function Register() {
                     />
                   )}
                 </View>
-                <Text style={{ fontSize: 16, color: "#333" }}>Partner</Text>
+                <Text style={{ fontSize: 16, color: "#333" }}>Partner (Car Owner)</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flexDirection: "row", alignItems: "center" }}
-                onPress={() => setRole("2")}
+                onPress={() => !isLoading && setRole("2")}
+                disabled={isLoading}
               >
                 <View
                   style={{
@@ -308,7 +438,7 @@ export default function Register() {
                     />
                   )}
                 </View>
-                <Text style={{ fontSize: 16, color: "#333" }}>Client</Text>
+                <Text style={{ fontSize: 16, color: "#333" }}>Client (Car Renter)</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -316,10 +446,10 @@ export default function Register() {
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 15 }}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-                Password
+                Password *
               </Text>
               <TextInput
-                placeholder="Enter your password"
+                placeholder="Enter password (min. 8 chars)"
                 value={password}
                 onChangeText={setPassword}
                 style={{
@@ -331,11 +461,12 @@ export default function Register() {
                 }}
                 secureTextEntry
                 autoComplete="new-password"
+                editable={!isLoading}
               />
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
               <Text style={{ fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 5 }}>
-                Confirm Password
+                Confirm Password *
               </Text>
               <TextInput
                 placeholder="Confirm your password"
@@ -350,6 +481,7 @@ export default function Register() {
                 }}
                 secureTextEntry
                 autoComplete="new-password"
+                editable={!isLoading}
               />
             </View>
           </View>
@@ -357,7 +489,7 @@ export default function Register() {
           <View style={{ marginBottom: 15 }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
-                onPress={() => setTermsAccepted(!termsAccepted)}
+                onPress={() => !isLoading && setTermsAccepted(!termsAccepted)}
                 style={{
                   width: 24,
                   height: 24,
@@ -368,6 +500,7 @@ export default function Register() {
                   alignItems: "center",
                   marginRight: 8,
                 }}
+                disabled={isLoading}
               >
                 {termsAccepted && (
                   <Ionicons name="checkmark" size={18} color="#ff3333" />
@@ -377,14 +510,14 @@ export default function Register() {
                 I agree to the{" "}
                 <Text
                   style={{ color: "#ff3333", textDecorationLine: "underline" }}
-                  onPress={() => alert("Terms of Service (Demo Placeholder)")}
+                  onPress={() => Alert.alert("Terms of Service", "Terms of Service content will be displayed here.")}
                 >
                   Terms of Service
                 </Text>{" "}
                 and{" "}
                 <Text
                   style={{ color: "#ff3333", textDecorationLine: "underline" }}
-                  onPress={() => alert("Privacy Policy (Demo Placeholder)")}
+                  onPress={() => Alert.alert("Privacy Policy", "Privacy Policy content will be displayed here.")}
                 >
                   Privacy Policy
                 </Text>
@@ -393,24 +526,40 @@ export default function Register() {
           </View>
 
           <View style={{ flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
-            <TouchableOpacity onPress={() => router.push("/login")}>
+            <TouchableOpacity 
+              onPress={() => router.push("/login")}
+              disabled={isLoading}
+            >
               <Text style={{ fontSize: 14, color: "#ff3333", marginRight: 16 }}>
                 Already registered?
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: "#ff3333",
+                backgroundColor: isLoading ? "#ccc" : "#ff3333",
                 paddingVertical: 12,
                 paddingHorizontal: 20,
                 borderRadius: 5,
                 alignItems: "center",
+                flexDirection: "row",
+                minWidth: 120,
+                justifyContent: "center",
               }}
               onPress={handleRegister}
+              disabled={isLoading}
             >
-              <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
-                REGISTER
-              </Text>
+              {isLoading ? (
+                <>
+                  <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+                  <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
+                    REGISTERING...
+                  </Text>
+                </>
+              ) : (
+                <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
+                  REGISTER
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

@@ -1,3 +1,4 @@
+// app/dashboard
 import React, { useState, useRef, useEffect } from "react";
 import {
   Text,
@@ -5,7 +6,6 @@ import {
   SafeAreaView,
   Image,
   TouchableOpacity,
-  ScrollView,
   TextInput,
   FlatList,
   StatusBar,
@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+
+import LogoutButton from "../components/LogoutButton";
 
 interface Announcement {
   id: string;
@@ -86,8 +88,6 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [visibleNotification, setVisibleNotification] = useState<Notification | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const scrollViewRef = useRef<ScrollView>(null);
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -280,6 +280,289 @@ export default function Dashboard() {
     </View>
   );
 
+  const renderFilterSection = () => (
+    <View style={{ padding: 20 }}>
+      <View
+        style={{
+          backgroundColor: "rgba(255,255,255,0.9)",
+          borderWidth: 1,
+          borderColor: "#ddd",
+          borderRadius: 10,
+          padding: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 5,
+          marginBottom: 20,
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: "#ff3333",
+            padding: 8,
+            borderRadius: 5,
+            alignSelf: "flex-start",
+            marginBottom: 20,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 14, fontWeight: "600" }}>
+            <Ionicons name="filter" size={14} color="white" /> Choose your filter
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+              City
+            </Text>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                padding: 12,
+              }}
+            >
+              {mockCities.map((city) => (
+                <TouchableOpacity
+                  key={city}
+                  style={{ paddingVertical: 5 }}
+                  onPress={() => setSearchFilters({ ...searchFilters, city })}
+                >
+                  <Text style={{ fontSize: 16, color: searchFilters.city === city ? "#ff3333" : "#333" }}>
+                    {city}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+              Car Model
+            </Text>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                padding: 12,
+              }}
+            >
+              {mockCarModels.map((model) => (
+                <TouchableOpacity
+                  key={model}
+                  style={{ paddingVertical: 5 }}
+                  onPress={() => setSearchFilters({ ...searchFilters, car_model: model })}
+                >
+                  <Text style={{ fontSize: 16, color: searchFilters.car_model === model ? "#ff3333" : "#333" }}>
+                    {model}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+              Colors
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TextInput
+                value={searchFilters.color}
+                placeholder="Pick a color"
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  borderRadius: 5,
+                  padding: 12,
+                  fontSize: 16,
+                }}
+                editable={false}
+              />
+              <TouchableOpacity
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: searchFilters.color || "#fff",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginLeft: 10,
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                }}
+                onPress={() => setColorPickerOpen(!colorPickerOpen)}
+              >
+                <Ionicons name="color-palette" size={20} color="#000" />
+              </TouchableOpacity>
+            </View>
+            {colorPickerOpen && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 100,
+                  right: 20,
+                  backgroundColor: "white",
+                  borderRadius: 5,
+                  padding: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 5,
+                  zIndex: 100,
+                }}
+              >
+                <View style={{ flexDirection: "row", flexWrap: "wrap", width: 120 }}>
+                  {mockColors.map((color) => (
+                    <TouchableOpacity
+                      key={color}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        backgroundColor: color,
+                        margin: 5,
+                        borderWidth: searchFilters.color === color ? 2 : 1,
+                        borderColor: searchFilters.color === color ? "#000" : "#ddd",
+                      }}
+                      onPress={() => {
+                        setSearchFilters({ ...searchFilters, color });
+                        setColorPickerOpen(false);
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+              Price
+            </Text>
+            <TextInput
+              placeholder="Enter price (e.g., 100)"
+              value={searchFilters.price}
+              onChangeText={(text) => setSearchFilters({ ...searchFilters, price: text })}
+              style={{
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                padding: 12,
+                fontSize: 16,
+              }}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+              Day
+            </Text>
+            <TextInput
+              placeholder="YYYY-MM-DD"
+              value={searchFilters.date}
+              onChangeText={(text) => setSearchFilters({ ...searchFilters, date: text })}
+              style={{
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                padding: 12,
+                fontSize: 16,
+              }}
+            />
+          </View>
+
+          <View style={{ width: "48%", marginBottom: 15 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <View style={{ width: "48%" }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+                  From
+                </Text>
+                <TextInput
+                  placeholder="HH:MM"
+                  value={searchFilters.from}
+                  onChangeText={(text) => setSearchFilters({ ...searchFilters, from: text })}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#ddd",
+                    borderRadius: 5,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                />
+              </View>
+              <View style={{ width: "48%" }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
+                  To
+                </Text>
+                <TextInput
+                  placeholder="HH:MM"
+                  value={searchFilters.to}
+                  onChangeText={(text) => setSearchFilters({ ...searchFilters, to: text })}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#ddd",
+                    borderRadius: 5,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#f87171",
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              borderRadius: 5,
+              marginRight: 10,
+            }}
+            onPress={handleReset}
+          >
+            <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>Reset</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#ff3333",
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              borderRadius: 5,
+            }}
+            onPress={handleSearch}
+          >
+            <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>Search</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderFooter = () => (
+    <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 20 }}>
+      <TouchableOpacity
+        style={{ padding: 10 }}
+        onPress={() => addNotification("Previous page accessed (Demo)", "success")}
+      >
+        <Text style={{ color: "#ff3333", fontSize: 16 }}>Previous</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{ padding: 10 }}
+        onPress={() => addNotification("Next page accessed (Demo)", "success")}
+      >
+        <Text style={{ color: "#ff3333", fontSize: 16 }}>Next</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <StatusBar barStyle="light-content" />
@@ -421,15 +704,7 @@ export default function Dashboard() {
                 >
                   <Text style={{ color: "white", fontSize: 14 }}>Profile</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={{ paddingVertical: 8 }}
-                  onPress={() => {
-                    addNotification("Logged out successfully (Demo)", "success");
-                    router.push("/login");
-                  }}
-                >
-                  <Text style={{ color: "white", fontSize: 14 }}>Log Out</Text>
-                </TouchableOpacity>
+                <LogoutButton />
               </View>
             )}
           </View>
@@ -438,294 +713,15 @@ export default function Dashboard() {
 
       {showNotificationHistory && renderNotificationHistory()}
 
-      <ScrollView ref={scrollViewRef} style={{ flex: 1, backgroundColor: "#f7f7f7" }}>
-        <View style={{ padding: 20 }}>
-          <View
-            style={{
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderWidth: 1,
-              borderColor: "#ddd",
-              borderRadius: 10,
-              padding: 20,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 3.84,
-              elevation: 5,
-              marginBottom: 20,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "#ff3333",
-                padding: 8,
-                borderRadius: 5,
-                alignSelf: "flex-start",
-                marginBottom: 20,
-              }}
-            >
-              <Text style={{ color: "white", fontSize: 14, fontWeight: "600" }}>
-                <Ionicons name="filter" size={14} color="white" /> Choose your filter
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                  City
-                </Text>
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#ddd",
-                    borderRadius: 5,
-                    padding: 12,
-                  }}
-                >
-                  {mockCities.map((city) => (
-                    <TouchableOpacity
-                      key={city}
-                      style={{ paddingVertical: 5 }}
-                      onPress={() => setSearchFilters({ ...searchFilters, city })}
-                    >
-                      <Text style={{ fontSize: 16, color: searchFilters.city === city ? "#ff3333" : "#333" }}>
-                        {city}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                  Car Model
-                </Text>
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#ddd",
-                    borderRadius: 5,
-                    padding: 12,
-                  }}
-                >
-                  {mockCarModels.map((model) => (
-                    <TouchableOpacity
-                      key={model}
-                      style={{ paddingVertical: 5 }}
-                      onPress={() => setSearchFilters({ ...searchFilters, car_model: model })}
-                    >
-                      <Text style={{ fontSize: 16, color: searchFilters.car_model === model ? "#ff3333" : "#333" }}>
-                        {model}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                  Colors
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <TextInput
-                    value={searchFilters.color}
-                    placeholder="Pick a color"
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: "#ddd",
-                      borderRadius: 5,
-                      padding: 12,
-                      fontSize: 16,
-                    }}
-                    editable={false}
-                  />
-                  <TouchableOpacity
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: searchFilters.color || "#fff",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      marginLeft: 10,
-                      borderWidth: 1,
-                      borderColor: "#ddd",
-                    }}
-                    onPress={() => setColorPickerOpen(!colorPickerOpen)}
-                  >
-                    <Ionicons name="color-palette" size={20} color="#000" />
-                  </TouchableOpacity>
-                </View>
-                {colorPickerOpen && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: 100,
-                      right: 20,
-                      backgroundColor: "white",
-                      borderRadius: 5,
-                      padding: 10,
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
-                      elevation: 5,
-                      zIndex: 100,
-                    }}
-                  >
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", width: 120 }}>
-                      {mockColors.map((color) => (
-                        <TouchableOpacity
-                          key={color}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 15,
-                            backgroundColor: color,
-                            margin: 5,
-                            borderWidth: searchFilters.color === color ? 2 : 1,
-                            borderColor: searchFilters.color === color ? "#000" : "#ddd",
-                          }}
-                          onPress={() => {
-                            setSearchFilters({ ...searchFilters, color });
-                            setColorPickerOpen(false);
-                          }}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                  Price
-                </Text>
-                <TextInput
-                  placeholder="Enter price (e.g., 100)"
-                  value={searchFilters.price}
-                  onChangeText={(text) => setSearchFilters({ ...searchFilters, price: text })}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#ddd",
-                    borderRadius: 5,
-                    padding: 12,
-                    fontSize: 16,
-                  }}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                  Day
-                </Text>
-                <TextInput
-                  placeholder="YYYY-MM-DD"
-                  value={searchFilters.date}
-                  onChangeText={(text) => setSearchFilters({ ...searchFilters, date: text })}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#ddd",
-                    borderRadius: 5,
-                    padding: 12,
-                    fontSize: 16,
-                  }}
-                />
-              </View>
-
-              <View style={{ width: "48%", marginBottom: 15 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <View style={{ width: "48%" }}>
-                    <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                      From
-                    </Text>
-                    <TextInput
-                      placeholder="HH:MM"
-                      value={searchFilters.from}
-                      onChangeText={(text) => setSearchFilters({ ...searchFilters, from: text })}
-                      style={{
-                        borderWidth: 1,
-                        borderColor: "#ddd",
-                        borderRadius: 5,
-                        padding: 12,
-                        fontSize: 16,
-                      }}
-                    />
-                  </View>
-                  <View style={{ width: "48%" }}>
-                    <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333", marginBottom: 5 }}>
-                      To
-                    </Text>
-                    <TextInput
-                      placeholder="HH:MM"
-                      value={searchFilters.to}
-                      onChangeText={(text) => setSearchFilters({ ...searchFilters, to: text })}
-                      style={{
-                        borderWidth: 1,
-                        borderColor: "#ddd",
-                        borderRadius: 5,
-                        padding: 12,
-                        fontSize: 16,
-                      }}
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#f87171",
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 5,
-                  marginRight: 10,
-                }}
-                onPress={handleReset}
-              >
-                <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>Reset</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#ff3333",
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 5,
-                }}
-                onPress={handleSearch}
-              >
-                <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>Search</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <FlatList
-            data={filteredAnnouncements}
-            renderItem={renderAnnouncement}
-            keyExtractor={(item) => item.id}
-            numColumns={1}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
-
-          <View style={{ flexDirection: "row", justifyContent: "center", marginVertical: 20 }}>
-            <TouchableOpacity
-              style={{ padding: 10 }}
-              onPress={() => addNotification("Previous page accessed (Demo)", "success")}
-            >
-              <Text style={{ color: "#ff3333", fontSize: 16 }}>Previous</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ padding: 10 }}
-              onPress={() => addNotification("Next page accessed (Demo)", "success")}
-            >
-              <Text style={{ color: "#ff3333", fontSize: 16 }}>Next</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
+      <FlatList
+        data={filteredAnnouncements}
+        renderItem={renderAnnouncement}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderFilterSection}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        style={{ flex: 1, backgroundColor: "#f7f7f7" }}
+      />
 
       {renderNotification()}
     </SafeAreaView>

@@ -19,6 +19,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LogoutButton from "../components/LogoutButton";
+
 
 // Types
 interface User {
@@ -1657,7 +1659,8 @@ export default function PartnerContent() {
             onPress={() => navigateTo("/login")}
           >
             <Ionicons name="log-out" size={20} color={COLORS.primary} style={{ marginRight: 10 }} />
-            <Text style={{ color: COLORS.gray[800] }}>Logout</Text>
+                          <LogoutButton />
+            
           </TouchableOpacity>
         </View>
       )}

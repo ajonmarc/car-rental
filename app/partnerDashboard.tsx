@@ -1,3 +1,4 @@
+// app/partnerDashboard
 import React, { useState, useRef } from "react";
 import {
   Text,
@@ -10,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import LogoutButton from "../components/LogoutButton";
+
 
 export default function PartnerDashboard() {
   const router = useRouter();
@@ -125,15 +128,8 @@ export default function PartnerDashboard() {
               >
                 <Text style={{ color: "white", fontSize: 14 }}>Profile</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={{ paddingVertical: 8 }}
-                onPress={() => {
-                  alert("Logged out (Demo)");
-                  router.push("/login");
-                }}
-              >
-                <Text style={{ color: "white", fontSize: 14 }}>Log Out</Text>
-              </TouchableOpacity>
+              <LogoutButton />
+           
             </View>
           )}
         </View>
