@@ -13,8 +13,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import ClientNav from './components/ClientNav';
 
-import LogoutButton from "../components/LogoutButton";
+
 
 interface Announcement {
   id: string;
@@ -66,6 +67,8 @@ const mockAnnouncements: Announcement[] = [
 const mockCities = ["New York", "Los Angeles", "Chicago", "Miami", "Seattle"];
 const mockCarModels = ["Sedan", "SUV", "Sports Car", "Electric", "Convertible"];
 const mockColors = ["#000000", "#FFFFFF", "#FF3333", "#00FF00", "#0000FF", "#FFFF00"];
+
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -567,149 +570,9 @@ export default function Dashboard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <StatusBar barStyle="light-content" />
 
-      <View
-        style={{
-          backgroundColor: "#000",
-          padding: 15,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center" }}
-          onPress={() => router.push("/dashboard")}
-        >
-          <Image
-            source={require("../assets/logoW.png")}
-            style={{ width: 40, height: 40, marginRight: 10 }}
-          />
-          <Text style={{ color: "white", fontSize: 20, fontWeight: "bold" }}>CARS Rent</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setMenuOpen(!menuOpen)}>
-          <Ionicons name={menuOpen ? "close" : "menu"} size={30} color="white" />
-        </TouchableOpacity>
-      </View>
+ 
+      <ClientNav userName={userName} />
 
-      {menuOpen && (
-        <View
-          style={{
-            backgroundColor: "rgba(0,0,0,0.9)",
-            position: "absolute",
-            top: 70,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            padding: 20,
-          }}
-        >
-          <TouchableOpacity
-            style={{ paddingVertical: 10 }}
-            onPress={() => {
-              setMenuOpen(false);
-              router.push("/dashboard");
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{ paddingVertical: 10 }}
-            onPress={() => {
-              setMenuOpen(false);
-              addNotification("Articles page accessed (Demo)", "success");
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>Articles</Text>
-          </TouchableOpacity>
-          {userRole === "1" && (
-            <>
-              <TouchableOpacity
-                style={{ paddingVertical: 10 }}
-                onPress={() => {
-                  setMenuOpen(false);
-                  addNotification("Partner page accessed (Demo)", "success");
-                }}
-              >
-                <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>Partner</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ paddingVertical: 10 }}
-                onPress={() => {
-                  setMenuOpen(false);
-                  addNotification("Demandes page accessed (Demo)", "success");
-                }}
-              >
-                <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>Demandes</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 20 }}>
-            {userRole === "2" && (
-              <>
-                <TouchableOpacity
-                  style={{ marginHorizontal: 10 }}
-                  onPress={() => {
-                    setMenuOpen(false);
-                    setShowNotificationHistory(true);
-                  }}
-                >
-                  <Ionicons name="notifications" size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{ marginHorizontal: 10 }}
-                  onPress={() => {
-                    addNotification("Cart accessed (Demo)", "success");
-                  }}
-                >
-                  <Ionicons name="cart" size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{ marginHorizontal: 10 }}
-                  onPress={() => {
-                    addNotification("History accessed (Demo)", "success");
-                  }}
-                >
-                  <Ionicons name="time" size={24} color="white" />
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity
-              style={{ marginHorizontal: 10 }}
-              onPress={() => {
-                addNotification("Feedback page accessed (Demo)", "success");
-              }}
-            >
-              <Ionicons name="chatbox" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-          <View style={{ marginTop: 20 }}>
-            <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}
-              onPress={() => setDropdownOpen(!dropdownOpen)}
-            >
-              <Image
-                source={require("../assets/car1.png")}
-                style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
-              />
-              <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>{userName}</Text>
-              <Ionicons name="chevron-down" size={16} color="white" style={{ marginLeft: 5 }} />
-            </TouchableOpacity>
-            {dropdownOpen && (
-              <View style={{ backgroundColor: "#333", borderRadius: 5, padding: 10, marginTop: 5 }}>
-                <TouchableOpacity
-                  style={{ paddingVertical: 8 }}
-                  onPress={() => {
-                    addNotification("Profile page accessed (Demo)", "success");
-                  }}
-                >
-                  <Text style={{ color: "white", fontSize: 14 }}>Profile</Text>
-                </TouchableOpacity>
-                <LogoutButton />
-              </View>
-            )}
-          </View>
-        </View>
-      )}
 
       {showNotificationHistory && renderNotificationHistory()}
 

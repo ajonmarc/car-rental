@@ -114,7 +114,6 @@ export default function Register() {
     }
   };
 
-// In Register.tsx, update handleRegister
 const handleRegister = async () => {
   setErrors([]);
   setStatus(null);
@@ -141,27 +140,30 @@ const handleRegister = async () => {
     const result = await registerUser(userData);
 
     if (result.success) {
-      setStatus("Registration successful! Redirecting...");
+      setStatus("Registration successful! Redirecting to login...");
 
-      if (result.data?.user) {
-        await AsyncStorage.setItem("user", JSON.stringify(result.data.user));
-      }
+      // Clear session just in case
+      await AsyncStorage.removeItem("authToken");
+      await AsyncStorage.removeItem("user");
 
-      if (result.data?.token) {
-        await AsyncStorage.setItem("authToken", result.data.token);
-      } else {
-        console.warn("No token received from backend");
-      }
-
-    setTimeout(() => {
-  router.replace(role === "1" ? "/partnerDashboard" : "/dashboard");
-}, 1500);
+      // Delay then redirect to login
+      setTimeout(() => {
+        // Navigate to login and force it to re-render by appending a query
+        router.replace({
+          pathname: "/login",
+          params: { fromRegister: "1", ts: Date.now().toString() }, // forces reload
+        });
+      }, 1500);
     } else {
       if (result.errors) {
         const fieldErrors: string[] = [];
         Object.entries(result.errors).forEach(([field, messages]) => {
           if (Array.isArray(messages)) {
-            fieldErrors.push(...messages.map(msg => `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}`));
+            fieldErrors.push(
+              ...messages.map(
+                (msg) => `${field.charAt(0).toUpperCase() + field.slice(1)}: ${msg}`
+              )
+            );
           }
         });
         setErrors(fieldErrors);
@@ -176,6 +178,7 @@ const handleRegister = async () => {
     setIsLoading(false);
   }
 };
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
