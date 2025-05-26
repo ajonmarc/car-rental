@@ -148,25 +148,32 @@ export default function PartnerContent() {
     }
   }, [errors]);
 
-  // Handle image picker
-  const pickImages = async () => {
+const pickImages = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 0.8,
-        selectionLimit: 5,
-      });
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: [ImagePicker.MediaType.IMAGE],
+            allowsMultipleSelection: true,
+            quality: 0.8,
+            selectionLimit: 5,
+        });
 
-      if (!result.canceled) {
-        const selectedImages = result.assets.map((asset) => ({ uri: asset.uri }));
-        setImages(selectedImages);
-      }
+        if (!result.canceled) {
+            const selectedImages = result.assets.map((asset) => {
+                const extension = asset.uri.split('.').pop().toLowerCase();
+                const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+                return {
+                    uri: asset.uri,
+                    name: `image${Math.random().toString(36).substring(7)}.${extension}`,
+                    type: mimeType,
+                };
+            });
+            setImages(selectedImages);
+        }
     } catch (error) {
-      console.error("Image picker error:", error);
-      Alert.alert("Error", "Failed to pick images");
+        console.error("Image picker error:", error);
+        Alert.alert("Error", "Failed to pick images");
     }
-  };
+};
 
   // Open modal for creating or editing
   const openModal = useCallback((announcement = null) => {
@@ -195,72 +202,84 @@ export default function PartnerContent() {
     setModalVisible(true);
   }, []);
 
-  // Submit announcement
-  const submitAnnouncement = async () => {
+const submitAnnouncement = async () => {
     if (!validateForm()) {
-      Alert.alert("Validation Error", "Please check all required fields");
-      return;
+        Alert.alert("Validation Error", "Please check all required fields");
+        return;
     }
 
     try {
-      setLoading(true);
-      const endpoint = isEditing ? "/auth/partner/update" : "/auth/partner/save";
-      const method = isEditing ? "put" : "post";
+        setLoading(true);
+        const endpoint = isEditing ? "/auth/partner/update" : "/auth/partner/save";
+        const method = isEditing ? "put" : "post";
 
-      const formData = new FormData();
+        const formData = new FormData();
+        Object.entries(form).forEach(([key, value]) => {
+            if (key !== "availability") {
+                // Convert premium boolean to "1" or "0"
+                if (key === "premium") {
+                    formData.append(key, value ? "1" : "0");
+                } else {
+                    formData.append(key, value);
+                }
+            }
+        });
 
-      Object.entries(form).forEach(([key, value]) => {
-        if (key !== "availability") {
-          formData.append(key, value);
+        if (isEditing && currentAnnouncement?.id) {
+            formData.append("id", currentAnnouncement.id.toString());
         }
-      });
 
-      if (isEditing && currentAnnouncement?.id) {
-        formData.append("id", currentAnnouncement.id.toString());
-      }
+        Object.entries(form.availability).forEach(([day, data]) => {
+            if (data.selected) {
+                formData.append(`availability[${day}][selected]`, "1");
+                formData.append(`availability[${day}][from]`, data.from);
+                formData.append(`availability[${day}][to]`, data.to);
+            }
+        });
 
-      Object.entries(form.availability).forEach(([day, data]) => {
-        if (data.selected) {
-          formData.append(`availability[${day}][selected]`, "1");
-          formData.append(`availability[${day}][from]`, data.from);
-          formData.append(`availability[${day}][to]`, data.to);
+        images.forEach((image, index) => {
+            if (image.uri) {
+                formData.append(`images[${index}]`, {
+                    uri: image.uri,
+                    name: image.name,
+                    type: image.type,
+                });
+            }
+        });
+
+        // Log FormData for debugging
+        console.log("FormData:");
+        for (let pair of formData._parts) {
+            console.log(`${pair[0]}:`, pair[1]);
         }
-      });
 
-      images.forEach((image, index) => {
-        if (image.uri) {
-          formData.append(`images[${index}]`, {
-            uri: image.uri,
-            name: `image${index}.jpg`,
-            type: "image/jpeg",
-          });
+        const response = await api({
+            method,
+            url: endpoint,
+            data: formData,
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        if (response.data.success) {
+            Alert.alert("Success", response.data.message);
+            setModalVisible(false);
+            await fetchAnnouncements();
+        } else {
+            throw new Error(response.data.message || "Unknown error occurred");
         }
-      });
-
-      const response = await api({
-        method,
-        url: endpoint,
-        data: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      if (response.data.success) {
-        Alert.alert("Success", response.data.message);
-        setModalVisible(false);
-        await fetchAnnouncements();
-      } else {
-        throw new Error(response.data.message || "Unknown error occurred");
-      }
     } catch (error) {
-      console.error("Submit error:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to save announcement";
-      Alert.alert("Error", errorMessage);
+        console.error("Submit error:", error);
+        console.log("Error response:", error.response?.data);
+        const errorMessage = error.response?.data?.errors
+            ? Object.values(error.response.data.errors).join(", ")
+            : error.response?.data?.message || "Failed to save announcement";
+        Alert.alert("Error", errorMessage);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   // Delete announcement
   const deleteAnnouncement = useCallback(
@@ -338,30 +357,30 @@ export default function PartnerContent() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" />
         <PartnerNav userName={userName} />
-
-        <FlatList
-          data={announcements}
-          renderItem={renderAnnouncement}
-          keyExtractor={(item) => item.id.toString()}
-          ListHeaderComponent={
-            <View style={styles.card}>
-              <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-                <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Add New Announcement</Text>
-              </TouchableOpacity>
-            </View>
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="car-outline" size={50} color="#fff" />
-              <Text style={styles.emptyText}>No announcements found</Text>
-              <Text style={styles.emptySubText}>Create your first announcement to get started</Text>
-            </View>
-          }
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollView}
-        />
+   
+     <FlatList
+  data={announcements}
+  renderItem={renderAnnouncement}
+  keyExtractor={(item) => item.id.toString()}
+  ListHeaderComponent={
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
+        <Ionicons name="add-circle-outline" size={20} color="#fff" />
+        <Text style={styles.addButtonText}>Add New Announcement</Text>
+      </TouchableOpacity>
+    </View>
+  }
+  ListEmptyComponent={
+    <View style={styles.emptyContainer}>
+      <Ionicons name="car-outline" size={50} color="#fff" />
+      <Text style={styles.emptyText}>No announcements found</Text>
+      <Text style={styles.emptySubText}>Create your first announcement to get started</Text>
+    </View>
+  }
+  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }} // 👈 Add this
+/>
 
         {/* Modal for Create/Edit */}
         <Modal visible={modalVisible} animationType="slide" presentationStyle="fullScreen">
