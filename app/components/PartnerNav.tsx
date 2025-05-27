@@ -91,7 +91,7 @@ const PartnerNav: React.FC<PartnerNavProps> = ({ userName: propUserName }) => {
               router.push('/partnerContent');
             }}
           >
-            <Text style={styles.navText}>Demandes</Text>
+            <Text style={styles.navText}>Announcement</Text>
           </TouchableOpacity>
           <View style={styles.navFooter}>
             <TouchableOpacity

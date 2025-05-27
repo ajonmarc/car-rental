@@ -59,7 +59,7 @@ export default function PartnerDashboard() {
               onPress={() => router.push("/partnerContent")}
             >
               <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
-                Manage Articles
+                Manage announcement
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -70,10 +70,10 @@ export default function PartnerDashboard() {
                 borderRadius: 5,
                 alignItems: "center",
               }}
-              onPress={() => router.push("/partnerContent")}
+              onPress={() => router.push("/manageRents")}
             >
               <Text style={{ color: "white", fontWeight: "600", fontSize: 16 }}>
-                Manage Demandes
+                Manage Rents
               </Text>
             </TouchableOpacity>
           </View>
@@ -92,7 +92,7 @@ export default function PartnerDashboard() {
             }}
           >
             <Text style={{ fontSize: 20, fontWeight: "bold", color: "#333", marginBottom: 15 }}>
-              Your Listings
+              Your Clients
             </Text>
             {[
               { id: "1", title: "BMW X5 Rental", status: "Active" },
@@ -122,7 +122,7 @@ export default function PartnerDashboard() {
               onPress={() => alert("View All Listings (Demo Placeholder)")}
             >
               <Text style={{ color: "#ff3333", fontSize: 16, fontWeight: "600" }}>
-                View All Listings
+                View All Clients
               </Text>
             </TouchableOpacity>
           </View>
